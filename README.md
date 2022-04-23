@@ -1,1 +1,1 @@
-# My cicd cnfiguration
+# My cicd configuration
