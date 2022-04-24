@@ -1,27 +1,73 @@
+CODE_CHANGES = getGitChanges()
 pipeline {
     agent any
 
     stages {
-        stage('Hello') {
+        stage('Clone sources') {
             steps {
-                echo 'Building the application...'
+                git url -: 'https://github.com/Sir-Jarvis/cicd.git'
             }
         }
-        stage('Test') {
+        // Launch tests
+        stage('test') {
             steps {
                 echo 'Testing the application'
             }
         }
-        stage('Checking') {
+        
+        // QUality gate analysis and check
+        stage('SonarQube Analysis') {
             steps {
-                echo 'Quality gate checking the application'
+                withSonarQubeEnv('SonarQube')
+                sh './gradlew sonarqube'
             }
         }
-        stage('Deploy') {
+        stage('Quality gate') {
             steps {
-                echo 'Deploying the application'
+                waitForQualityGate abortPipeline: true
             }
         }
-
+        
+        // Deploy main branch
+        stage('Deploy DEV') {
+            when {
+                expression {
+                    BRANCH_NAME == 'main'
+                }
+            }
+            steps {
+                sleep time: 30, unit: 'SECONDS'
+                echo 'Deploying the application with main'
+            }
+        }
+        
+        // Deploy rec branch
+        stage('Deploy REC') {
+            when {
+                expression {
+                    BRANCH_NAME == 'rec'
+                }
+            }
+            steps {
+                echo 'Deploying the application with rec'
+            }
+        }
+    }
+    post {
+        always {
+            // cleaning
+        }
+        success {
+            // sending success email
+        }
+        failure {
+            // sending failure email
+        }
+        unstable {
+            // unstable email
+        }
+        changed {
+            // change email
+        }
     }
 }
