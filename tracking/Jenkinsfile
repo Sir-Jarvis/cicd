@@ -3,15 +3,17 @@ pipeline {
     agent any
 
     stages {
-        stage('Clone sources') {
-            steps {
-                git url -: 'https://github.com/Sir-Jarvis/cicd.git'
-            }
-        }
+        // stage('Build') {
+           // steps {
+             //   git : 'https://github.com/Sir-Jarvis/cicd.git'
+               // sh './mvnw clean compile'
+            //}
+        //}
         // Launch tests
-        stage('test') {
+        stage('Test') {
             steps {
-                echo 'Testing the application'
+                sh 'make check || true' 
+                junit '**/target/*.xml'
             }
         }
         
@@ -36,8 +38,9 @@ pipeline {
                 }
             }
             steps {
+                // Temps d'attente de 30s
                 sleep time: 30, unit: 'SECONDS'
-                echo 'Deploying the application with main'
+                sh 'make publish'
             }
         }
         
@@ -49,7 +52,29 @@ pipeline {
                 }
             }
             steps {
-                echo 'Deploying the application with rec'
+                sh 'make publish'
+            }
+        }
+        stage('Test Deploy DEV') {
+            when {
+                expression {
+                    BRANCH_NAME == 'main' & currentBuild.result == 'SUCCESS'
+                }
+            }
+            steps {
+                sh 'make check || true' 
+                junit '**/target/*.xml'
+            }
+        }
+        stage('Test Deploy REC') {
+            when {
+                expression {
+                    BRANCH_NAME == 'rec' & currentBuild.result == 'SUCCESS'
+                }
+            }
+            steps {
+                sh 'make check || true' 
+                junit '**/target/*.xml'
             }
         }
     }
@@ -62,6 +87,7 @@ pipeline {
         }
         failure {
             // sending failure email
+            mail to: seneibou@ept.sn, subject: 'The Pipeline failed :('
         }
         unstable {
             // unstable email
